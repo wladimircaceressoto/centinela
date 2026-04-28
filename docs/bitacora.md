@@ -10,3 +10,23 @@
    - Se configuró la conexión a la base de datos `PostgreSQL` (`centinela_db`) mediante `SQLAlchemy`, superando conflictos de versiones de sintaxis (transición a SQLAlchemy 2.0).
    - Las tablas fueron generadas exitosamente en pgAdmin.
 4. **Validación de Datos:** - Se implementó la capa de validación usando `Pydantic V2` (`schemas.py`) para asegurar la integridad de los datos antes de su inserción en la base de datos.
+
+## Día 2: Orquestación, Comunicaciones y Bloqueo Externo
+**Fecha:** 27 de abril de 2026
+**Fase Actual:** Fase 1 (Estudio de Mercado Histórico) - 90% Completado
+
+### Hitos Logrados:
+1. **Módulo de Comunicaciones (`email_service.py`):**
+   - Se implementó un servicio de notificaciones robusto utilizando `smtplib` y `email.mime`.
+   - Se configuró exitosamente la conexión segura `SMTP_SSL` (Puerto 465) utilizando el correo corporativo de PFJ-Printer.
+   - Se diseñaron plantillas HTML responsivas y corporativas para las alertas del sistema. (Prueba de envío exitosa).
+2. **Cerebro de Extracción (`mercado_publico_service.py`):**
+   - Se construyó el servicio de integración con la API de Mercado Público.
+   - Se implementó un patrón de "Inyección de Dependencias" para el manejo eficiente de las sesiones de la base de datos PostgreSQL, evitando saturación de conexiones.
+   - Se integró la validación estricta usando los esquemas de Pydantic antes de persistir los datos.
+3. **Orquestador Principal (`main.py`):**
+   - Se levantó el servidor principal utilizando `FastAPI`.
+   - Se creó el endpoint `POST /api/v1/ejecutar-centinela` que automatiza el flujo completo: Cálculo de fecha -> Extracción -> Validación -> Persistencia -> Notificación.
+
+### Incidencias y Bloqueos:
+- **Bloqueo Externo:** Al realizar las pruebas de integración final, la API de Mercado Público presentó una caída masiva (Error HTTP 500: Internal Server Error) constante, imposibilitando la extracción de datos reales. El sistema Centinela capturó el error correctamente sin colapsar. Se pausa la ejecución hasta que el proveedor externo (Estado) restablezca sus servidores.
