@@ -4,41 +4,75 @@ Sistema principal de la aplicación backend.
 """
 
 import os
-from typing import Dict, Any
+from datetime import datetime, timedelta
+from typing import Dict, Any, Optional
 
 import uvicorn
 from dotenv import load_dotenv
-from fastapi import FastAPI
-from fastapi.responses import JSONResponse
-from database.database import engine, Base
-from models import models
+from fastapi import FastAPI, Depends, HTTPException
+from sqlalchemy.orm import Session
 
-# Esta es la línea que crea las tablas mágicamente si no existen
-Base.metadata.create_all(bind=engine)
+from database.database import SessionLocal, engine
+from models.models import Base
+from services.mercado_publico_service import MercadoPublicoService
+from services.email_service import EmailService
+
 # Cargar variables de entorno
 load_dotenv()
 
+# Crear tablas si no existen
+Base.metadata.create_all(bind=engine)
+
 # Inicializar aplicación FastAPI
-app: FastAPI = FastAPI(
-    title="Centinela API",
-    description="Motor de Inteligencia Comercial",
-    version="1.0.0"
-)
+app: FastAPI = FastAPI(title="API Centinela")
 
 
-@app.get("/", response_class=JSONResponse)
-async def health_check() -> Dict[str, Any]:
-    """
-    Health Check - Endpoint raíz para verificar el estado del sistema.
-    
-    Returns:
-        Dict[str, Any]: Estado actual del sistema Centinela
-    """
-    return {
-        "sistema": "Centinela",
-        "estado": "En línea y vigilando",
-        "version": "1.0.0"
-    }
+def get_db() -> Session:
+    """Generador de sesión de base de datos para dependencias de FastAPI."""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+@app.get("/", response_model=Dict[str, str])
+async def health_check() -> Dict[str, str]:
+    return {"estado": "Centinela API en línea"}
+
+
+@app.post("/api/v1/ejecutar-centinela")
+def ejecutar_centinela(
+    fecha: Optional[str] = None,
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """Ejecuta el proceso principal de búsqueda y notificación de licitaciones adjudicadas."""
+    try:
+        if not fecha:
+            fecha_obj: datetime = datetime.now() - timedelta(days=1)
+            fecha = fecha_obj.strftime("%d%m%Y")
+
+        service_mp = MercadoPublicoService()
+        licitaciones = service_mp.obtener_licitaciones_adjudicadas(fecha, db)
+
+        if licitaciones:
+            email_destino: Optional[str] = os.getenv("EMAIL_DAVID")
+            if not email_destino:
+                raise ValueError("La variable EMAIL_DAVID no está configurada en .env")
+
+            email_service = EmailService()
+            email_service.enviar_reporte_adjudicaciones(email_destino, licitaciones)
+
+        return {
+            "estado": "éxito",
+            "fecha_procesada": fecha,
+            "total_licitaciones_encontradas": len(licitaciones)
+        }
+
+    except ValueError as ve:
+        raise HTTPException(status_code=500, detail=str(ve))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Error al ejecutar Centinela: {str(exc)}")
 
 
 if __name__ == "__main__":
