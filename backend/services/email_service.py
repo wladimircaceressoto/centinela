@@ -443,7 +443,7 @@ class EmailService:
 if __name__ == "__main__":
     try:
         email_service: EmailService = EmailService()
-        email_service.enviar_correo_prueba("wladimircaceressoto@gmail.com")
+        email_service.enviar_correo_prueba("stecnico@pfj-printer.cl")
         # email_service.enviar_reporte_adjudicaciones("correo@ejemplo.com", [...])
     except Exception as e:
         logger.error(f"Error en email_service: {str(e)}")

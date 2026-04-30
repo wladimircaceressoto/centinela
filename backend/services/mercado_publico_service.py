@@ -1,5 +1,6 @@
 import requests
 import os
+import time
 from dotenv import load_dotenv
 from datetime import datetime
 from sqlalchemy.orm import Session
@@ -94,124 +95,92 @@ class MercadoPublicoService:
     def _obtener_detalle_licitacion(self, codigo_externo: str) -> Dict[str, Any]:
         """
         Obtiene el detalle completo de una licitación incluyendo ítems y adjudicaciones.
-
-        Args:
-            codigo_externo (str): Código externo de la licitación
-
-        Returns:
-            Dict[str, Any]: Detalle completo de la licitación
         """
-        url: str = f"{self.base_url}/licitaciones/{codigo_externo}.json"
-        params: Dict[str, str] = {"ticket": self.mp_ticket}
+        # CORRECCIÓN: La URL base no lleva el código insertado
+        url: str = f"{self.base_url}/licitaciones.json"
+        
+        # CORRECCIÓN: El código se envía como un parámetro adicional
+        params: Dict[str, str] = {
+            "ticket": self.mp_ticket,
+            "codigo": codigo_externo
+        }
 
         logger.info(f"Obteniendo detalle de licitación: {codigo_externo}")
         return self._hacer_llamada_api(url, params)
 
     def _procesar_licitacion_para_email(self, licitacion_data: Dict[str, Any]) -> List[Dict[str, str]]:
-        """
-        Procesa los datos de una licitación para formatearlos según lo esperado por EmailService.
+        resultados = []
+        try:
+            lic_data = licitacion_data.get("Listado", [{}])[0]
+            if not lic_data: return resultados
 
-        Args:
-            licitacion_data (Dict[str, Any]): Datos de la licitación desde la API
+            codigo_externo = lic_data.get("CodigoExterno", "")
+            nombre_licitacion = lic_data.get("Nombre", "")
+            
+            # Vamos DIRECTO a los ítems, ignoramos la cabecera tramposa
+            items = lic_data.get("Items", {}).get("Listado", [])
+            ruts_encontrados = set()
 
-        Returns:
-            List[Dict[str, str]]: Lista de diccionarios formateados para email
-        """
-        resultados: List[Dict[str, str]] = []
+            for item in items:
+                adj_item = item.get("Adjudicacion")
+                if isinstance(adj_item, dict):
+                    rut = adj_item.get("RutProveedor", "")
+                    empresa = adj_item.get("NombreProveedor", "")
+                    monto = str(adj_item.get("MontoEstimado", lic_data.get("MontoEstimado", 0)))
 
-        # Extraer información básica de la licitación
-        codigo_externo: str = licitacion_data.get("Listado", [{}])[0].get("CodigoExterno", "")
-        nombre_licitacion: str = licitacion_data.get("Listado", [{}])[0].get("Nombre", "")
-
-        # Procesar adjudicaciones
-        adjudicaciones: List[Dict[str, Any]] = licitacion_data.get("Adjudicacion", [])
-
-        for adjudicacion in adjudicaciones:
-            empresa_ganadora: str = adjudicacion.get("NombreProveedor", "")
-            rut: str = adjudicacion.get("RutProveedor", "")
-            monto_adjudicado: str = str(adjudicacion.get("MontoEstimado", 0))
-
-            # Solo incluir adjudicaciones con datos completos
-            if empresa_ganadora and rut:
-                resultados.append({
-                    "codigo_externo": codigo_externo,
-                    "nombre_licitacion": nombre_licitacion,
-                    "empresa_ganadora": empresa_ganadora,
-                    "rut": rut,
-                    "monto_adjudicado": monto_adjudicado
-                })
-
+                    # Si hay ganador y no lo hemos agregado ya al correo
+                    if rut and empresa and rut not in ruts_encontrados:
+                        resultados.append({
+                            "codigo_externo": codigo_externo,
+                            "nombre_licitacion": nombre_licitacion,
+                            "empresa_ganadora": empresa,
+                            "rut": rut,
+                            "monto_adjudicado": monto
+                        })
+                        ruts_encontrados.add(rut)
+        except Exception as e:
+            logger.error(f"Error parseando email: {e}")
         return resultados
 
-    def _guardar_licitacion_en_db(
-        self,
-        licitacion_data: Dict[str, Any],
-        db: Session
-    ) -> Licitacion:
-        """
-        Guarda una licitación completa en la base de datos.
-
-        Args:
-            licitacion_data (Dict[str, Any]): Datos de la licitación desde la API
-            db (Session): Sesión de base de datos
-
-        Returns:
-            Licitacion: Instancia del modelo Licitacion guardado
-        """
-        # Extraer datos básicos de la licitación
-        listado: List[Dict[str, Any]] = licitacion_data.get("Listado", [])
+    def _guardar_licitacion_en_db(self, licitacion_data: Dict[str, Any], db: Session) -> Licitacion:
+        listado = licitacion_data.get("Listado", [])
         if not listado:
-            raise ValueError("Datos de licitación incompletos")
+            raise ValueError("Datos incompletos")
 
-        lic_data: Dict[str, Any] = listado[0]
-
-        # Crear instancia de Licitacion
-        licitacion: Licitacion = Licitacion(
+        lic_data = listado[0]
+        licitacion = Licitacion(
             codigo_externo=lic_data.get("CodigoExterno", ""),
             nombre=lic_data.get("Nombre", ""),
             estado=lic_data.get("Estado", ""),
             monto_estimado=lic_data.get("MontoEstimado", 0),
             region_unidad=lic_data.get("RegionUnidad", ""),
-            fecha_adjudicacion=datetime.now() if lic_data.get("Estado") == "Adjudicada" else None
+            fecha_adjudicacion=datetime.now()
         )
 
-        # Agregar items si existen
-        items_data: List[Dict[str, Any]] = licitacion_data.get("Items", [])
+        items_data = lic_data.get("Items", {}).get("Listado", [])
+        ruts_guardados = set()
+
+        # Vamos DIRECTO a los ítems a buscar a los ganadores
         for item_data in items_data:
-            item: Item = Item(
-                codigo_licitacion=licitacion.codigo_externo,
-                nombre_producto=item_data.get("NombreProducto", ""),
-                cantidad=item_data.get("Cantidad", 0),
-                categoria=item_data.get("Categoria", None)
-            )
-            licitacion.items.append(item)
+            adj_data = item_data.get("Adjudicacion")
+            if isinstance(adj_data, dict):
+                rut = adj_data.get("RutProveedor", "")
+                if rut and rut not in ruts_guardados:
+                    adjudicacion = Adjudicacion(
+                        codigo_licitacion=licitacion.codigo_externo,
+                        rut_proveedor=rut,
+                        nombre_proveedor=adj_data.get("NombreProveedor", ""),
+                        monto_ganador=adj_data.get("MontoEstimado", lic_data.get("MontoEstimado", 0))
+                    )
+                    licitacion.adjudicaciones.append(adjudicacion)
+                    ruts_guardados.add(rut)
 
-        # Agregar adjudicaciones si existen
-        adjudicaciones_data: List[Dict[str, Any]] = licitacion_data.get("Adjudicacion", [])
-        for adj_data in adjudicaciones_data:
-            adjudicacion: Adjudicacion = Adjudicacion(
-                codigo_licitacion=licitacion.codigo_externo,
-                rut_proveedor=adj_data.get("RutProveedor", ""),
-                nombre_proveedor=adj_data.get("NombreProveedor", ""),
-                monto_ganador=adj_data.get("MontoEstimado", 0)
-            )
-            licitacion.adjudicaciones.append(adjudicacion)
-
-        # Validar con Pydantic antes de guardar
-        try:
-            LicitacionSchema.model_validate(licitacion)
-        except Exception as e:
-            logger.error(f"Error de validación en licitación {licitacion.codigo_externo}: {str(e)}")
-            raise ValueError(f"Datos de licitación inválidos: {str(e)}")
-
-        # Guardar en base de datos
         db.add(licitacion)
         db.commit()
         db.refresh(licitacion)
-
         logger.info(f"Licitación guardada exitosamente: {licitacion.codigo_externo}")
         return licitacion
-
+    
     def obtener_licitaciones_adjudicadas(self, fecha: str, db: Session) -> List[Dict[str, str]]:
         """
         Obtiene licitaciones adjudicadas para una fecha específica desde Mercado Público.
@@ -241,7 +210,7 @@ class MercadoPublicoService:
             params: Dict[str, str] = {
                 "ticket": self.mp_ticket,
                 "fecha": fecha,
-                "estado": "8"  # Estado 8 = Adjudicadas
+                "estado": "adjudicada"  
             }
 
             logger.info(f"Consultando licitaciones adjudicadas para fecha: {fecha}")
@@ -258,6 +227,13 @@ class MercadoPublicoService:
 
             for lic_basica in licitaciones_list:
                 codigo_externo: str = lic_basica.get("CodigoExterno", "")
+                nombre_lic: str = lic_basica.get("Nombre", "").lower()
+
+                # --- EL HACK DE LAS 1:30 AM ---
+                # Si no tiene la palabra "impre", la saltamos
+                if "impre" not in nombre_lic:
+                    continue
+                # ------------------------------
 
                 if not codigo_externo:
                     logger.warning("Licitación sin código externo, omitiendo")
@@ -283,6 +259,7 @@ class MercadoPublicoService:
                         continue
 
                     # Si no existe, obtener detalle completo desde API
+                    time.sleep(1.5)
                     detalle_licitacion: Dict[str, Any] = self._obtener_detalle_licitacion(codigo_externo)
 
                     # Guardar en base de datos

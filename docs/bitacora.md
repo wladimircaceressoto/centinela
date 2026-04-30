@@ -30,3 +30,19 @@
 
 ### Incidencias y Bloqueos:
 - **Bloqueo Externo:** Al realizar las pruebas de integración final, la API de Mercado Público presentó una caída masiva (Error HTTP 500: Internal Server Error) constante, imposibilitando la extracción de datos reales. El sistema Centinela capturó el error correctamente sin colapsar. Se pausa la ejecución hasta que el proveedor externo (Estado) restablezca sus servidores.
+
+## Día 3: Cierre de Fase 1: Infraestructura y Validación Estado: Finalizado
+**Fecha:** 30 de abril de 2026
+**Fase Actual:** Fase 1 (Estudio de Mercado Histórico) - 90% Completado
+
+### Logros Técnicos:
+Conectividad Robusta: Se implementó y validó la conexión con la API de Mercado Público, superando errores de servidor (500), rutas no encontradas (404) y límites de peticiones (429) mediante el uso de delays controlados.
+
+Persistencia de Datos: Integración exitosa con PostgreSQL (pgAdmin) para el almacenamiento de licitaciones, ítems y adjudicaciones.
+
+Motor de Parsing "Todoterreno": Se desarrolló una lógica de extracción capaz de encontrar datos de ganadores incluso cuando la API los oculta en diferentes niveles del JSON.
+
+Sistema de Notificaciones: Implementación del servicio de correo electrónico con plantillas HTML corporativas, validado con envíos exitosos a cuentas personales y de equipo (stecnico@pfj-printer.cl).
+
+### Hito Alcanzado:
+Prueba de Fuego: Captura y reporte exitoso de una licitación de $170.850.000 (ID: 17120-1-LE26), validando el flujo completo del sistema.

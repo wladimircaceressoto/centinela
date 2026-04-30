@@ -5,7 +5,7 @@ Sistema principal de la aplicación backend.
 
 import os
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Generator
 
 import uvicorn
 from dotenv import load_dotenv
@@ -16,6 +16,8 @@ from database.database import SessionLocal, engine
 from models.models import Base
 from services.mercado_publico_service import MercadoPublicoService
 from services.email_service import EmailService
+import logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 # Cargar variables de entorno
 load_dotenv()
@@ -27,7 +29,7 @@ Base.metadata.create_all(bind=engine)
 app: FastAPI = FastAPI(title="API Centinela")
 
 
-def get_db() -> Session:
+def get_db() -> Generator[Session, None, None]:
     """Generador de sesión de base de datos para dependencias de FastAPI."""
     db = SessionLocal()
     try:
@@ -55,13 +57,12 @@ def ejecutar_centinela(
         service_mp = MercadoPublicoService()
         licitaciones = service_mp.obtener_licitaciones_adjudicadas(fecha, db)
 
-        if licitaciones:
-            email_destino: Optional[str] = os.getenv("EMAIL_DAVID")
-            if not email_destino:
-                raise ValueError("La variable EMAIL_DAVID no está configurada en .env")
+        email_destino: Optional[str] = os.getenv("EMAIL_DAVID")
+        if not email_destino:
+            raise ValueError("La variable EMAIL_DAVID no está configurada en .env")
 
-            email_service = EmailService()
-            email_service.enviar_reporte_adjudicaciones(email_destino, licitaciones)
+        email_service = EmailService()
+        email_service.enviar_reporte_adjudicaciones(email_destino, licitaciones)
 
         return {
             "estado": "éxito",
