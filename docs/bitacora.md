@@ -46,3 +46,13 @@ Sistema de Notificaciones: Implementación del servicio de correo electrónico c
 
 ### Hito Alcanzado:
 Prueba de Fuego: Captura y reporte exitoso de una licitación de $170.850.000 (ID: 17120-1-LE26), validando el flujo completo del sistema.
+
+## Día 4: Optimización Estética e Inicio de Fase 2
+**Fecha:** 30 de abril de 2026
+
+### Logros Técnicos:
+Compatibilidad de Email: Refactorización total de la plantilla HTML usando maquetación basada en tablas y CSS inline para asegurar visualización perfecta en Outlook 2016 y dispositivos móviles.
+
+Filtro de Intersección: Implementación de lógica de doble capa (Acción + Producto) para eliminar ruido en las búsquedas (ej: descartar arriendos de vehículos o ventas de insumos menores).
+
+Motor de Barrido Histórico: Finalización del script autónomo barrido_historico.py con manejo de rate limiting y persistencia de datos masiva.

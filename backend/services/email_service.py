@@ -250,7 +250,6 @@ class EmailService:
             rut: str = str(licitacion.get("rut", "N/A"))
             monto_adjudicado: str = str(licitacion.get("monto_adjudicado", "N/A"))
 
-            # Aplicar formato de moneda si es posible
             try:
                 monto_numerico: float = float(
                     monto_adjudicado.replace("$", "").replace(".", "").replace(",", ".")
@@ -261,16 +260,15 @@ class EmailService:
             except (ValueError, AttributeError):
                 monto_formateado: str = monto_adjudicado
 
-            # Alternar colores de fila para mejor legibilidad
             color_fondo: str = "#f9f9f9" if idx % 2 == 0 else "#ffffff"
 
             filas_tabla += f"""
-            <tr style="background-color: {color_fondo};">
-                <td style="padding: 12px; border-bottom: 1px solid #e0e0e0; font-size: 13px; color: #1a3a52; font-weight: 500;">{codigo_externo}</td>
-                <td style="padding: 12px; border-bottom: 1px solid #e0e0e0; font-size: 13px; color: #333333;">{nombre_licitacion}</td>
-                <td style="padding: 12px; border-bottom: 1px solid #e0e0e0; font-size: 13px; color: #333333;">{empresa_ganadora}</td>
-                <td style="padding: 12px; border-bottom: 1px solid #e0e0e0; font-size: 13px; color: #333333;">{rut}</td>
-                <td style="padding: 12px; border-bottom: 1px solid #e0e0e0; font-size: 13px; color: #27ae60; font-weight: 600; text-align: right;">{monto_formateado}</td>
+            <tr role="presentation" style="background-color: {color_fondo};">
+                <td style="padding: 10px; border-bottom: 1px solid #dddddd; font-size: 13px; color: #1a3a52; font-weight: 500; font-family: Arial, Helvetica, sans-serif;">{codigo_externo}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #dddddd; font-size: 13px; color: #333333; font-family: Arial, Helvetica, sans-serif;">{nombre_licitacion}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #dddddd; font-size: 13px; color: #333333; font-family: Arial, Helvetica, sans-serif;">{empresa_ganadora}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #dddddd; font-size: 13px; color: #333333; font-family: Arial, Helvetica, sans-serif;">{rut}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #dddddd; font-size: 13px; color: #27ae60; font-weight: 600; text-align: right; font-family: Arial, Helvetica, sans-serif;">{monto_formateado}</td>
             </tr>
             """
 
@@ -280,158 +278,71 @@ class EmailService:
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <style>
-                body {{
-                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                    background-color: #f5f5f5;
-                    margin: 0;
-                    padding: 0;
-                }}
-                .container {{
-                    max-width: 900px;
-                    margin: 20px auto;
-                    background-color: #ffffff;
-                    border-radius: 8px;
-                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-                    overflow: hidden;
-                }}
-                .header {{
-                    background: linear-gradient(135deg, #1a3a52 0%, #2d5a7b 100%);
-                    color: #ffffff;
-                    padding: 30px 20px;
-                    text-align: center;
-                }}
-                .header h1 {{
-                    margin: 0;
-                    font-size: 28px;
-                    font-weight: 600;
-                    letter-spacing: 0.5px;
-                }}
-                .header p {{
-                    margin: 8px 0 0 0;
-                    font-size: 14px;
-                    opacity: 0.9;
-                }}
-                .content {{
-                    padding: 30px;
-                    color: #333333;
-                }}
-                .content h2 {{
-                    color: #1a3a52;
-                    font-size: 20px;
-                    margin: 0 0 10px 0;
-                }}
-                .content p {{
-                    line-height: 1.6;
-                    margin: 15px 0;
-                    font-size: 14px;
-                }}
-                .badge {{
-                    display: inline-block;
-                    background-color: #e3f2fd;
-                    color: #1a3a52;
-                    padding: 6px 12px;
-                    border-radius: 4px;
-                    font-weight: 600;
-                    margin: 15px 0;
-                    font-size: 13px;
-                }}
-                .table-wrapper {{
-                    margin: 25px 0;
-                    border-radius: 6px;
-                    overflow: hidden;
-                    border: 1px solid #e0e0e0;
-                }}
-                table {{
-                    width: 100%;
-                    border-collapse: collapse;
-                }}
-                thead {{
-                    background: linear-gradient(135deg, #2d5a7b 0%, #1a3a52 100%);
-                    color: #ffffff;
-                }}
-                th {{
-                    padding: 14px 12px;
-                    text-align: left;
-                    font-weight: 600;
-                    font-size: 13px;
-                    letter-spacing: 0.5px;
-                }}
-                td {{
-                    padding: 12px;
-                    border-bottom: 1px solid #e0e0e0;
-                    font-size: 13px;
-                }}
-                tbody tr:last-child td {{
-                    border-bottom: none;
-                }}
-                .summary {{
-                    background-color: #f0f4f8;
-                    padding: 15px;
-                    border-left: 4px solid #2d5a7b;
-                    margin: 20px 0;
-                    border-radius: 4px;
-                }}
-                .summary p {{
-                    margin: 5px 0;
-                    font-size: 13px;
-                }}
-                .summary strong {{
-                    color: #1a3a52;
-                }}
-                .footer {{
-                    background-color: #f8f9fa;
-                    padding: 20px;
-                    text-align: center;
-                    border-top: 1px solid #e9ecef;
-                    font-size: 12px;
-                    color: #666666;
-                }}
-            </style>
         </head>
-        <body>
-            <div class="container">
-                <div class="header">
-                    <h1>📊 Centinela</h1>
-                    <p>Reporte de Licitaciones Adjudicadas</p>
-                </div>
-                <div class="content">
-                    <h2>Hola,</h2>
-                    <p>
-                        Soy <strong>Centinela de PFJ-Printer</strong> y he encontrado <span class="badge">{cantidad_licitaciones} licitación(es)</span> adjudicada(s) dentro del plazo de búsqueda establecido, de acuerdo al siguiente detalle:
-                    </p>
-
-                    <div class="summary">
-                        <p><strong>Total de licitaciones:</strong> {cantidad_licitaciones}</p>
-                        <p><strong>Fecha de reporte:</strong> {__import__('datetime').datetime.now().strftime('%d/%m/%Y %H:%M')}</p>
-                    </div>
-
-                    <div class="table-wrapper">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Código Externo</th>
-                                    <th>Nombre de Licitación</th>
-                                    <th>Empresa Ganadora</th>
-                                    <th>RUT</th>
-                                    <th style="text-align: right;">Monto Adjudicado</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filas_tabla}
-                            </tbody>
+        <body style="margin: 0; padding: 0; background-color: #f5f5f5;">
+            <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; width: 100%; margin: 0; padding: 20px 0;">
+                <tr>
+                    <td align="center">
+                        <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="max-width: 600px; width: 100%; margin: 0 auto; background-color: #ffffff; border-collapse: collapse;">
+                            <tr>
+                                <td style="padding: 20px 20px 10px 20px; text-align: center; background-color: #1a3a52;">
+                                    <h1 style="margin: 0; font-size: 24px; color: #ffffff; font-family: Arial, Helvetica, sans-serif;">📊 Centinela</h1>
+                                    <p style="margin: 8px 0 0 0; color: #e5e5e5; font-size: 14px; font-family: Arial, Helvetica, sans-serif;">Reporte de Licitaciones Adjudicadas</p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 20px; font-family: Arial, Helvetica, sans-serif; color: #333333;">
+                                    <h2 style="margin: 0 0 10px 0; font-size: 20px; color: #1a3a52; font-family: Arial, Helvetica, sans-serif;">Hola,</h2>
+                                    <p style="margin: 0 0 15px 0; font-size: 14px; line-height: 1.5; color: #333333; font-family: Arial, Helvetica, sans-serif;">
+                                        Soy <strong style="font-weight: 700;">Centinela de PFJ-Printer</strong> y he encontrado <strong style="font-weight: 700;">{cantidad_licitaciones} licitación(es)</strong> adjudicada(s).
+                                    </p>
+                                    <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="margin: 15px 0 0 0; border-collapse: collapse;">
+                                        <tr>
+                                            <td style="padding: 12px; background-color: #f0f4f8; border: 1px solid #e0e0e0; font-size: 13px; color: #1a3a52; font-family: Arial, Helvetica, sans-serif;">
+                                                <strong>Total de licitaciones:</strong> {cantidad_licitaciones}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 12px; background-color: #f0f4f8; border: 1px solid #e0e0e0; border-top: none; font-size: 13px; color: #1a3a52; font-family: Arial, Helvetica, sans-serif;">
+                                                <strong>Fecha de reporte:</strong> {__import__('datetime').datetime.now().strftime('%d/%m/%Y %H:%M')}
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 0 20px 20px 20px;">
+                                    <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse; width: 100%;">
+                                        <thead>
+                                            <tr>
+                                                <th bgcolor="#f4f4f4" style="padding: 10px; border-bottom: 1px solid #dddddd; text-align: left; font-size: 13px; color: #333333; font-weight: 700; font-family: Arial, Helvetica, sans-serif; background-color: #f4f4f4;">Código Externo</th>
+                                                <th bgcolor="#f4f4f4" style="padding: 10px; border-bottom: 1px solid #dddddd; text-align: left; font-size: 13px; color: #333333; font-weight: 700; font-family: Arial, Helvetica, sans-serif; background-color: #f4f4f4;">Nombre de Licitación</th>
+                                                <th bgcolor="#f4f4f4" style="padding: 10px; border-bottom: 1px solid #dddddd; text-align: left; font-size: 13px; color: #333333; font-weight: 700; font-family: Arial, Helvetica, sans-serif; background-color: #f4f4f4;">Empresa Ganadora</th>
+                                                <th bgcolor="#f4f4f4" style="padding: 10px; border-bottom: 1px solid #dddddd; text-align: left; font-size: 13px; color: #333333; font-weight: 700; font-family: Arial, Helvetica, sans-serif; background-color: #f4f4f4;">RUT</th>
+                                                <th bgcolor="#f4f4f4" style="padding: 10px; border-bottom: 1px solid #dddddd; text-align: right; font-size: 13px; color: #333333; font-weight: 700; font-family: Arial, Helvetica, sans-serif; background-color: #f4f4f4;">Monto Adjudicado</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {filas_tabla}
+                                        </tbody>
+                                    </table>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 0 20px 20px 20px; font-family: Arial, Helvetica, sans-serif; color: #666666; font-size: 13px; line-height: 1.5;">
+                                    <p style="margin: 0;">Este es un correo automatizado. Por favor, no responda a este mensaje. Para más información, acceda al sistema Centinela.</p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 15px 20px 20px 20px; text-align: center; background-color: #f8f9fa; font-size: 12px; color: #666666; font-family: Arial, Helvetica, sans-serif;">
+                                    <p style="margin: 0;">Centinela • Sistema de Inteligencia Comercial</p>
+                                    <p style="margin: 5px 0 0 0;">© 2024 PFJ-Printer. Todos los derechos reservados.</p>
+                                </td>
+                            </tr>
                         </table>
-                    </div>
-
-                    <p style="font-size: 13px; color: #666666; margin-top: 25px;">
-                        Este es un correo automatizado. Por favor, no responda a este mensaje. Para más información, acceda al sistema Centinela.
-                    </p>
-                </div>
-                <div class="footer">
-                    <p>Centinela • Sistema de Inteligencia Comercial</p>
-                    <p>© 2024 PFJ-Printer. Todos los derechos reservados.</p>
-                </div>
-            </div>
+                    </td>
+                </tr>
+            </table>
         </body>
         </html>
         """

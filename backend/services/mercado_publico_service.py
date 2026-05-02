@@ -229,11 +229,16 @@ class MercadoPublicoService:
                 codigo_externo: str = lic_basica.get("CodigoExterno", "")
                 nombre_lic: str = lic_basica.get("Nombre", "").lower()
 
-                # --- EL HACK DE LAS 1:30 AM ---
-                # Si no tiene la palabra "impre", la saltamos
-                if "impre" not in nombre_lic:
+                # --- Filtro de Intersección (Acción + Producto) ---
+                palabras_clave_accion = ["arriend", "leas", "manten", "repara", "servicio técnico"]
+                palabras_clave_producto = ["impre", "fotoc"]
+                
+                tiene_accion = any(palabra in nombre_lic for palabra in palabras_clave_accion)
+                tiene_producto = any(palabra in nombre_lic for palabra in palabras_clave_producto)
+                
+                if not (tiene_accion and tiene_producto):
                     continue
-                # ------------------------------
+                # ---------------------------------------------------
 
                 if not codigo_externo:
                     logger.warning("Licitación sin código externo, omitiendo")
